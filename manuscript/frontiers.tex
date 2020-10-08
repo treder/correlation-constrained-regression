@@ -223,33 +223,36 @@ If an intercept is included in the model, we assume that a column of 1's is adde
 The regression of age on brain features often leads to a biased model that manifests as an overprediction of the age of younger individuals and an underprediction of the age of elderly ones. This effect can be quantified as a negative age delta correlation (ADC) denoted as $\corr(\y,\d)$. In the literature, ADC has been set to zero by adding a second stage to the analysis wherein the regression predictions from the first stage are corrected. Hence, brain-age delta prediction can be formulated as the following two-stage approach:
 
 \begin{enumerate}
-    \item[(1)]\textit{Training the regression model.} Train a regression model $f$ to predict age such that $\y \approx f(\X)$. The negative residuals, denoted as 
+    \item[(a)]\textit{Training the regression model.} Train a regression model $f$ to predict age such that $\y \approx f(\X)$. The negative residuals, denoted as 
     \begin{equation}\label{eq:twostage1}
-         \d_1 = f(\X) - \y
+         \d = f(\X) - \y
     \end{equation}
     represent the (uncorrected) brain age delta. 
 \end{enumerate}
 
-A number of authors proposed correction procedures to rid $\d_1$ of ADC  \citep{Le2018ABrainAGE,Smith2019EstimationImaging,Beheshti2019Bias-adjustmentScheme}. These approaches turned out to be mathematically equivalent and boil down to the following operation:
+A number of authors proposed correction procedures to rid $\d$ of ADC  \citep{Le2018ABrainAGE,Smith2019EstimationImaging,Beheshti2019Bias-adjustmentScheme}. These approaches turned out to be mathematically equivalent and boil down to the following operation:
     
 \begin{enumerate}
     \setcounter{enumi}{1}
-    \item[(2)]\textit{Correction of residuals.} Train a simple regression model $\d_1\approx\y\beta_1 + \beta_0$ to remove the linear effect of age from the delta estimate. The new estimate
-    \begin{equation}\label{eq:twostage2}
-         \d_2 = \d_1 - \y\beta_1 - \beta_0
+    \item[(b)]\textit{Approach 1: Correction of residuals.} Train a simple regression model $\d\approx\y\beta_1 + \beta_0$ to remove the linear effect of age from the delta estimate. The new estimate
+    \begin{equation}\label{eq:approach1_d}
+         \d_1 = \d - \y\beta_1 - \beta_0
     \end{equation}
     represents corrected brain age delta which is uncorrelated with age.
 \end{enumerate}
 
-As an alternative approach, it has been suggested that $\yh$ instead of $\d_1$ be used in the regression  \citep{Cole2018BrainMortality,deLange2020Commentary:Prediction} and then a correction made for the predictions:
+As an alternative approach, it has been suggested that $\yh$ instead of $\d$ be used in the regression  \citep{Cole2018BrainMortality,deLange2020Commentary:Prediction} and then a correction made for the predictions:
 
 \begin{enumerate}
     \setcounter{enumi}{1}
-    \item[(2')]\textit{Correction of predictions.} Train a simple regression model $\yh\approx\y\beta_1 + \beta_0$. Then define corrected predictions $\yh_2$ as 
-    \begin{equation}\label{eq:twostage2b}
+    \item[(b')]\textit{Approach 2: Correction of predictions.} Train a simple regression model $\yh\approx\y\beta_1 + \beta_0$. Then define corrected predictions $\yh_2$ as 
+    \begin{equation}\label{eq:approach2_y}
          \yh_2 = \frac{\yh - \beta_0}{\beta_1}
     \end{equation}
-
+    with corresponding brain age delta
+    \begin{equation}\label{eq:approach2_d}
+         \d_2 = \yh_2 - \y.
+    \end{equation}
 \end{enumerate}
 
 The residuals calculated based on the modified predictions are again uncorrelated with age. The relationship between these two approaches and our zero correlation constraint (\prettyref{sec:zero_correlation_constraint}) is investigated in \prettyref{sec:relationship}.
@@ -400,7 +403,7 @@ In this problem, the same loss function as before is minimized. However, the set
 \end{split}
 \end{equation}
 
-We will address the latter case first and see that it leads to a simple solution. In the following, we will assume that $\X$ and $\y$ have been centered and the model contains no intercept since this simplifies the equations.  This does not limit the generality of our results. As shown in \prettyref{app:same_coefficients}, a model with centered data and without intercept yields the same regression coefficients as a model with intercept. In other words, we can first calculate $\b$ on the centered data and subsequently calculate the intercept $\beta_0$ to obtain the model for non-centered data.
+We will address the latter case first and see that it leads to a simple solution. In the following, we will assume that $\X$ and $\y$ have been centered and the model contains no intercept since this simplifies the equations.  This does not limit the generality of our results. As shown in \prettyref{app:equal_coefficients}, a model with centered data and without intercept yields the same regression coefficients as a model with intercept. In other words, we can first calculate $\b$ on the centered data and subsequently calculate the intercept $\beta_0$ to obtain the model for non-centered data.
 
 
 
@@ -481,31 +484,42 @@ and $\yh$ is the predictions under the unconstrained OLS, ridge, or kernel ridge
 
 %For a zero correlation constraint, we will see that our method produces predictions that coincide with the correction approach 2' used by \cite{Cole2018BrainMortality,deLange2020Commentary:Prediction}. Furthermore, we will show that both approaches in the literature (2 and 2') yield the residuals that differ only by scaling. The scaling factor that relates the residuals is exactly $\az$ defined in \prettyref{eq:scaling_factor}.
 
-In \prettyref{sec:current_approaches} we reviewed two main approaches for correcting brain age delta used in the literature. Here, we investigate the relationship between both approaches and their relationship to our models.
-Departing from \prettyref{eq:twostage2} belonging to the first approach in  \prettyref{sec:current_approaches}, the regression slope $\beta_1$ for a simple linear regression model is given by
+In \prettyref{sec:current_approaches} we reviewed the two main approaches for correcting brain age delta used in the literature. Here, we investigate their mutual relationship as well as their relationship to our models. Without loss of generality we assume that $\y$ and $\X$ have been centered and hence $\beta_0=0$ (see \prettyref{app:equal_coefficients}).
+Let us start from \prettyref{eq:approach1_d} corresponding to approach 1 (correction of residuals). The regression slope $\beta_1$ for a simple linear regression model is given by
 
 \[
-\beta_1 = \corr(\d_1, \y)\frac{||\d_1||}{||\y||}
+\beta_1 = \corr(\d, \y)\,\frac{||\d||}{||\y||}.
 \]
 
-where to simplify notation we assume that $\y$ and $\X$ have been centered. Writing $\d = \yh - \y$ and expanding the correlation term as in \prettyref{eq:corr_expanded}, we find that
+Writing $\d = \yh - \y$ and expanding the correlation term as in \prettyref{eq:corr_expanded}, we find that
 
 \[
-\beta_1 = 1 - \frac{\y^\top\H\y}{||\y||^2} = 1 - \az^{-1} .
+\beta_1 = \frac{\y^\top\H\y}{||\y||^2} - 1 =  \az^{-1} - 1
 \]
 
-\todo{this needs to be completed} 
+and hence the solution to \prettyref{eq:approach1_d} is given by 
 
-...
-Alternatively, departing from the second approach in ... \prettyref{eq:twostage2b}
+\begin{equation}\label{eq:approach1_solution2_d}
+     \d_1 = \yh - \az^{-1}\y.
+\end{equation}
 
+Alternatively, using approach 2 (correction of predictions) and starting from \prettyref{eq:approach2_y} we perform a regression of $\yh$ on $\y$. Again, this is a simple linear regression model whose slope is given by 
 
+\[
+\beta_1 = \corr(\yh, \y)\,\frac{||\yh||}{||\y||} = \az^{-1}
+\]
 
-We can make two observations: (1) Le et al's approach yields a solution that is equivalent to our approach. (2) Both approaches in Sec XX are equivalent up to scaling. The scaling factor ... This can be 
+yielding the corrected predictions $\yh_2 = \yh/\beta_1 = \az\,\yh$ with corresponding brain age delta
 
-% \subsection{Relationship to errors-in-variables models}
+\begin{equation}\label{eq:approach2_solution2_d}
+     \d_2 = \az\,\yh - \y.
+\end{equation}
 
-% OLS regression is based on the assumption that the measurement of the features (brain scan) is noise-free where as the measurement of the target (chronological age) is noisy. At least intuitively speaking, the opposite should hold: chronological age can be assessed with high accuracy (virtually noise-free) whereas for a given age there is variability in the brain scans. This captured in so-called errors-in-variables (EOV) models \citep{Fro,Gleser1981EstimationResults}. 
+This solution uses a scaling of $\yh$ by $\az$ and is thus equivalent to our solution. Furthermore, comparing \prettyref{eq:approach1_solution2_d} and \prettyref{eq:approach2_solution2_d} we see that both solutions are proportional to each other. Their relationship is given by 
+
+\begin{equation}\label{eq:approach1_vs_2_d}
+     \d_2 = \az\,\d_1.
+\end{equation}
 
 \subsection{Toolbox}\label{sec:toolbox}
 
@@ -588,11 +602,12 @@ With respect to age delta correlation (ADC), our models perfectly controlled for
 A predictive bias manifesting as an overprediction of the age of young individuals and an underprediction of the age of elderly individuals has been consistently reported in the brain age literature \citep{Cole2017PredictingBiomarker,Liang2019InvestigatingDisorders,Smith2019EstimationImaging,Le2018ABrainAGE}. It can be quantified as age delta correlation (ADC), that is, the correlation between brain age delta (predicted age minus chronological age) and chronological age. 
 We introduced modifications of three popular regression models, OLS, Ridge and Kernel Ridge regression, that effectively control ADC. To this end, we introduced a hyperparameter $\rho$ that can be set by the user. It represents a correlation bound that controls the maximum permissible ADC. The resultant models are optimal in that they give the lowest error on the training set (among all models from the same class) while controlling for ADC. 
 
-Our models were tested on the PAC competition data  using different values for $\rho$ and 
-80-20 train/test splits. Our model not only perfectly controlled ADC on the training data, they also approximately controlled ADC on unseen test data (see \prettyref{fig:pac_results}). For all constrained models, ADC on the test set was lower than for the unconstrained models. The flip side of this was an increase of mean absolute error (MAE) for the constrained models as compared to the unconstrained model, but often this increase was modest. For instance, for an OLS model MAE increased from 5.232 for the unconstrained model to 5.259 for the constrained model with $\rho=0.3$, an increase of only 0.5\%. For Kernel Ridge regression and $\rho=0.3$, we did not find a significant increase in MAE at all, suggesting that using correlation bounds does not necessarily decrease predictive performance. Across all models in the test set, we found that an increase in $\rho$ led to a decrease in MAE. This suggests that $\rho$ can be used as a lever to finely control the trade-off between predictive performance (MAE) and age delta correlation (ADC). 
+Our models were tested on the PAC competition data  using different values for $\rho$. Our models not only perfectly controlled ADC on the training data, they also approximately controlled ADC on unseen test data (see \prettyref{fig:pac_results}). For all constrained models, ADC on the test set was lower than for the unconstrained models. The flip side of this was an increase of mean absolute error (MAE) for the constrained models as compared to the unconstrained model, but often this increase was modest. For instance, for an OLS model MAE increased from 5.232 for the unconstrained model to 5.259 for the constrained model with $\rho=0.3$, an increase of only 0.5\%. For Kernel Ridge regression and $\rho=0.3$, we did not find a significant increase in MAE at all, suggesting that using correlation bounds does not necessarily decrease predictive performance. Across all models in the test set, we found that an increase in $\rho$ led to a decrease in MAE. This suggests that $\rho$ can be used as a lever to finely control the trade-off between predictive performance (MAE) and age delta correlation (ADC). 
 
-For the special case of a zero correlation constraint ($\rho = 0$) we showed in \prettyref{sec:relationship} that our models' brain age deltas are proportional to the values obtained with other approaches  \citep{Cole2018BrainMortality,deLange2020Commentary:Prediction,Le2018ABrainAGE,Smith2019EstimationImaging,Beheshti2019Bias-adjustmentScheme}, despite deriving them via an entirely different route. For the two main approaches reviewed in \prettyref{sec:current_approaches}, residuals differ only by a scaling factor $\a$ defined in \prettyref{eq:scaling_factor}. Our and \cite{Cole2018BrainMortality}'s approach (Eq XX in \prettyref{sec:relationship}) scales the model output (predicted age) to calculate the residuals whereas in the alternative approach (Eq XX) the data itself (chronological age) is scaled in order to correct the residuals. 
-We believe that the model should be corrected, not the data, and therefore scaling of the model output is preferable over scaling of the data. Be it as it may, in the absence of consensus over the 
+For the special case of a zero correlation constraint, $\rho = 0$, we showed in \prettyref{sec:relationship} that our models' brain age deltas are equivalent to approach 2 in  \prettyref{sec:current_approaches} \citep{Le2018ABrainAGE}, wherein a correction of the predictions is performed by regressing the predicted age on age. This is despite deriving the solution via an entirely different route. Moreover, the solution is proportional to approach 1, which performs a correction of the residuals by regressing the brain age delta on age \citep{Cole2018BrainMortality,deLange2020Commentary:Prediction,Le2018ABrainAGE,Smith2019EstimationImaging,Beheshti2019Bias-adjustmentScheme}. Both approaches' solutions differ only by the scaling factor $\az$ defined in \prettyref{eq:scaling_factor}. The difference between both approaches is that our and \cite{Cole2018BrainMortality}'s approach (approach 2) scales the predicted age before calculating the corrected delta whereas in approach 1 the chronological age is corrected in order to obtain the delta. As ... but this difference is somewhat illusory ... but this should not be taken  \citep{Beheshti2019Bias-adjustmentScheme} ... If anything, we believe that approach 2 is more faithful to a predictive modeling approach since it performs a correction by scaling the model predictions, whereas approach 1 downscales the data (chronological age) itself. Downscaling the data of course 
+
+
+We believe that the model should be modified, not the data, and therefore scaling of the model output is preferable over scaling of the data. Be it as it may, in the absence of consensus over the 
 
 A limitation of our study is that it only covers OLS, Ridge, and Kernel Ridge regression. In the age of deep neural networks, the focus on linear and kernel methods may seem very limiting.  Therefore, we would like to emphasize that linear regression models lie at the heart of many non-linear approaches including Convolutional Neural Networks. As illustrated in \prettyref{fig:regression_models}, non-linear approaches can often be conceived of linear regression operating on non-linearly extracted features. We believe that in such a setting linear models can uniquely combine predictive power with computational efficiency and interpretability. In line with this, \cite{He2020DeepDemographics} found that kernel regression was as performant as deep neural networks when predicting phenotypes from functional connectivity data. Nevertheless, future work could address the incorporation of correlation constraints into other models classes such as Lasso \citep{Tibshirani2011RegressionRetrospective}, Support Vector Regression \citep{Muller1997} or CNNs. Since these models use iterative optimization, a possible approach could be adding the correlation term $-\corr^2(\y,\d)$ directly to the loss function. Alternatively, since $\y$ is constant this can be simplified to the quantity $\y^\top\yh / ||\d||^2$.
 
@@ -607,7 +622,7 @@ Concluding, we introduced a novel class of regression models that allows for fin
 %%%%%%%%%%%%%%%%%%%%%%
 \section{Appendix}
 
-\subsection{Equal coefficients for models with and without intercept}\label{app:same_coefficients}
+\subsection{Equal coefficients for models with and without intercept}\label{app:equal_coefficients}
 
 The coefficients vector $\bh$ (excluding the intercept $\beta_0$) obtained from a model including an intercept is the same as the $\bh$ obtained from a model without an intercept but where the $\X$ and $\y$ have been centered. To prove this, let us starts with ridge regression. First, let us consider a model without intercept where we are centering the data using $\mx=\frac{1}{n}\X^\top\one\in\R^p$ (column means of $\X$) and $\my=\frac{1}{n}\y^\top\one\in\R$ (mean of $\y$). The loss function and its gradient are given by
 
@@ -890,7 +905,7 @@ The neuroimaging dataset analyzed in this study has been provided by the PAC 201
 %%% If using *.tif files convert them to .jpg or .png
 %%%  NB logo1.eps is required in the path in order to correctly compile front page header %%%
 
-\begin{figure}[h!]
+\begin{figure}[!h]
 \begin{center}
 \includegraphics[width=1.\textwidth]{figures/ADC.jpeg}
 \end{center}
