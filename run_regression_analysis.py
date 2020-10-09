@@ -12,9 +12,6 @@ sys.path.append('/home/matthias/mt03/python_tools')
 import file_tools as ft
 import correlation_constrained_regression as ccr
 
-datadir = '/data/pac2019/kamen/'
-resultsdir = '/data/pac2019/results/'
-
 def load_data(dataset):
     '''
     Loads a regression dataset
@@ -113,5 +110,7 @@ for n in range(n_iterations):
         mse[n, m, 0, 0], mse[n, m, 0, 1], times[n, m, 0, 0], times[n, m, 0, 1], corrs[n, m, 0, 0], corrs[n, m, 0, 1] = fit_model(linreg, X_train, y_train, X_test, y_test)
         mse[n, m, 1, 0], mse[n, m, 1, 1], times[n, m, 1, 0], times[n, m, 1, 1], corrs[n, m, 1, 0], corrs[n, m, 1, 1] = fit_model(ridge, X_train, y_train, X_test, y_test)
         mse[n, m, 2, 0], mse[n, m, 2, 1], times[n, m, 2, 0], times[n, m, 2, 1], corrs[n, m, 2, 0], corrs[n, m, 2, 1] = fit_model(kr, X_train, y_train, X_test, y_test)
-    
-ft.save_pickle(resultsdir + f'regression_results_{dataset}.pickle', times, mse, corrs)
+
+# save results
+pickle.dump( (times, mse, corrs), open(f'regression_results_{dataset}.pickle', 'wb' ) )
+
