@@ -9,23 +9,23 @@ import numpy as np
 #     self.intercept_ = y.mean() - mx.dot(self.coef_)
 
 
-# def scale_coef(self, a):
+# def scale_coef(self, theta):
 #     '''
-#     Performs the scaling of the regression coefficients by a factor ``a``
+#     Performs the scaling of the regression coefficients by a factor ``theta``
 #     in Linear and Ridge Regression.
 #     '''
-#     self.coef_ = self.orig_coef_ * a
+#     self.coef_ = self.orig_coef_ * theta
 
-# def scale_dual_coef(self, a):
+# def scale_dual_coef(self, theta):
 #     '''
-#     Performs the scaling of the dual regression coefficients by a factor ``a``
+#     Performs the scaling of the dual regression coefficients by a factor ``theta``
 #     in Kernel Ridge Regression.
 #     '''
-#     self.dual_coef_ = self.orig_dual_coef_ * a
+#     self.dual_coef_ = self.orig_dual_coef_ * theta
 
 def calculate_scaling_factor(y, yhat, y_residual_correlation_uncorrected_, correlation_bound):
     '''
-    Calculates the scaling factor ``a`` that will make the model meet the correlation constraint
+    Calculates the scaling factor ``theta`` that will make the model meet the correlation constraint
     '''
     yc = y - y.mean()
     yhatc = yhat - yhat.mean()
@@ -51,7 +51,7 @@ def calculate_scaling_factor(y, yhat, y_residual_correlation_uncorrected_, corre
         theta = y2 * yyhat * (1-rho2)/c - y2/c * np.sqrt( rho2 * (1-rho2) * (y2*yhat2 - yyhat**2))
         # a2 = y2 * yyhat * (1-rho2)/c + y2/c * np.sqrt( rho2 * (1-rho2) * (y2*yhat2 - yyhat**2))
         # theta = np.array([a, a2], dtype=np.float)
-    return a
+    return theta
 
 def calculate_residual_correlation(self, X, y):
     '''Given features ``X`` and targets ``y``, calculates 
@@ -100,21 +100,18 @@ class LinearRegression(sklearn.linear_model.LinearRegression):
     >>> import correlation_constrained_regression as ccr
     >>> X = np.array([[1, 1], [1, 2], [3, 2], [3, 3]])
     >>> y = np.dot(X, np.array([1, 2])) + np.array([0.1, 0.2, -0.1, -0.2])
-    >>> reg = ccr.LinearRegression(correlation=0.01).fit(X, y)
-    >>> np.corrcoef(y, y - reg.predic(X))[0,1]
+    >>> reg = ccr.LinearRegression(correlation_bound=0.01).fit(X, y)
+    >>> np.corrcoef(y, y - reg.predict(X))[0,1]
     >>> reg.score(X, y)
     1.0
-    >>> reg.coef_
-    array([1., 2.])
-    >>> reg.intercept_
-    3.0000...
-    >>> reg.predict(np.array([[3, 5]]))
-    array([16.])
+    >>> reg.theta_
     """
     calculate_residual_correlation = calculate_residual_correlation
 
-    def __init__(self, correlation_bound=None, *args, **kwargs):
-        super(LinearRegression, self).__init__( *args, **kwargs)
+    def __init__(self, correlation_bound=None, fit_intercept=True, normalize=False, copy_X=True,
+                 n_jobs=None):
+        super(LinearRegression, self).__init__(fit_intercept=fit_intercept, normalize=normalize, copy_X=copy_X,
+                 n_jobs=n_jobs)
         if correlation_bound is not None:
             assert 0 <= correlation_bound <= 1, 'correlation_bound must be in the interval [0,1]'
         self.correlation_bound = correlation_bound
@@ -159,8 +156,8 @@ class Ridge(sklearn.linear_model.Ridge):
     #    correlation between ``y`` and the residuals ``y - yhat`` before correction
     #y_residual_correlation_corrected_ : float
     #    correlation between ``y`` and the residuals ``y - yhat`` after correction
-    a_ : float
-        Scaling factor such that ``a_ * coef_`` yields a model that satisfies the 
+    theta_ : float
+        Scaling factor such that ``theta_ * coef_`` yields a model that satisfies the 
         correlation constraint
 
     See Also
@@ -176,7 +173,7 @@ class Ridge(sklearn.linear_model.Ridge):
     >>> rng = np.random.RandomState(0)
     >>> y = rng.randn(n_samples)
     >>> X = rng.randn(n_samples, n_features)
-    >>> model = ccr.Ridge(alpha=1.0, corrrelation_bound=0.1)
+    >>> model = ccr.Ridge(alpha=1.0, correlation_bound=0.1)
     >>> model.fit(X, y)
     >>> print(f'corr(y, e): uncorrected {model.y_residual_correlation_uncorrected_:.3f}, corrected {model.y_residual_correlation_corrected_:.3f}')  
     """
@@ -231,8 +228,8 @@ class KernelRidge(sklearn.kernel_ridge.KernelRidge):
     #    correlation between ``y`` and the residuals ``y - yhat`` before correction
     #y_residual_correlation_corrected_ : float
     #    correlation between ``y`` and the residuals ``y - yhat`` after correction
-    a_ : float
-        Scaling factor such that ``a_ * coef_`` yields a model that satisfies the 
+    theta_ : float
+        Scaling factor such that ``theta_ * coef_`` yields a model that satisfies the 
         correlation constraint
 
     See Also
@@ -301,5 +298,5 @@ class KernelRidge(sklearn.kernel_ridge.KernelRidge):
 # # get predictions and residuals
 # yh = model.predict(X)
 # e = y - yh
-# print('a:', model.a_)
+# print('theta:', model.theta_)
 # print(f'corr(y, e): corrected {model.calculate_residual_correlation(X,y)}')

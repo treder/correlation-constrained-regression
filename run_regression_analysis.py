@@ -1,9 +1,6 @@
 import scipy, sys
-#import statsmodels.api as sm
-#import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-#import seaborn as sns
 import sklearn, sklearn.datasets
 
 from sklearn.metrics import mean_absolute_error
