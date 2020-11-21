@@ -37,7 +37,7 @@ def fit_model(model, X_train, y_train, X_test, y_test):
     start_time = time.time()
     model.fit(X_train, y_train)
     train_time = time.time() - start_time
-    
+
     # predict
     start_time = time.time()
     yhat_train = model.predict(X_train)
@@ -45,8 +45,8 @@ def fit_model(model, X_train, y_train, X_test, y_test):
     test_time = time.time() - start_time
 
     # target-residual correlation
-    corr_train = model.calculate_residual_correlation(X_train, y_train)
-    corr_test = model.calculate_residual_correlation(X_test, y_test)
+    corr_train = np.corrcoef(y_train, y_train - yhat_train)[0,1]
+    corr_test = np.corrcoef(y_test, y_test - yhat_test)[0,1]
 #     print(f'train {corr_train:.3f}, test {corr_test:.3f}')
     return mean_absolute_error(y_train, yhat_train), mean_absolute_error(y_test, yhat_test), \
             train_time, test_time, corr_train, corr_test
