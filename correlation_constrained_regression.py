@@ -46,11 +46,13 @@ def calculate_scaling_factor(y, yhat, y_residual_correlation_uncorrected_, corre
         rho2 = correlation_bound**2
         c = yyhat**2 - rho2*y2*yhat2
 
-        # since we use a square to solve for a we get two solutions
+        # since we use square root to solve for theta we get two solutions
         # one gives us corr(y,e) = rho, the other corr(y,e) = -rho
-        theta = y2 * yyhat * (1-rho2)/c - y2/c * np.sqrt( rho2 * (1-rho2) * (y2*yhat2 - yyhat**2))
-        # a2 = y2 * yyhat * (1-rho2)/c + y2/c * np.sqrt( rho2 * (1-rho2) * (y2*yhat2 - yyhat**2))
-        # theta = np.array([a, a2], dtype=np.float)
+        tmp1 = y2 * yyhat * (1-rho2)/c - y2/c * np.sqrt( rho2 * (1-rho2) * (y2*yhat2 - yyhat**2))
+        tmp2 = y2 * yyhat * (1-rho2)/c + y2/c * np.sqrt( rho2 * (1-rho2) * (y2*yhat2 - yyhat**2))
+        # make sure theta with the smaller absolute theta comes first (it corresponds to positive rho)
+        theta = tmp1 if np.abs(tmp1)<np.abs(tmp2) else tmp2
+
     return theta
 
 def calculate_residual_correlation(self, X, y):
