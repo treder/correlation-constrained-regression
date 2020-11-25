@@ -2,7 +2,7 @@
 Performs regression for a range of rho values from 0 to 1.
 Used to depict the ROC curve of rho vs MAE/ADC.
 '''
-import scipy, sys, time
+import scipy, sys, time, pickle
 import numpy as np
 import pandas as pd
 import sklearn, sklearn.datasets
@@ -18,16 +18,12 @@ import analysis_tools as at
 dataset = 'pac2019'
 X, y = at.load_data(dataset)
 
-tune_KernelRidge = [
-  {'kernel': ['rbf'], 'gamma': [100, 10, 1, 1e-1], 'alpha': [1e-3, 1e-2, 1e-1, 1, 10]},
-  {'kernel': ['poly'], 'gamma': [100, 10, 1, 1e-1], 'alpha': [1e-3, 1e-2, 1e-1, 1, 10], 'degree': [2, 3, 4, 5], 'coef0':[0, 1]}
- ]
-# tune_KernelRidge = {'kernel': ['rbf'], 'gamma': [100, 10, 1, 1e-1], 'alpha': [1e-3, 1e-2, 1e-1, 1, 10]}
+tune_KernelRidge = {'kernel': ['rbf'], 'gamma': [100, 10, 1, 1e-1], 'alpha': [1e-3, 1e-2, 1e-1, 1, 10]}
 tune_Ridge = {'alpha': [1e-3, 1e-2, 1e-1, 1, 10]}
 
 import time
 n_iterations = 100
-rho = np.linspace(0, 1, 101)
+rho = np.linspace(0, 1, 51)
 
 # iterations x correlation constraints x models (linear,ridge,kernelridge) x train/test phase
 mse = np.zeros((n_iterations, len(rho), 3, 2))
