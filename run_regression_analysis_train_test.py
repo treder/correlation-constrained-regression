@@ -1,6 +1,7 @@
 '''
-OLD VERSION DO NOT USE
-Performs cross-validation on the training set
+Evaluates the three regression models (OLS, Ridge, Kernel Ridge)
+on the official PAC2019 train and test sets.
+Bootstrapping is used to estimate SD of the estimates.
 '''
 import scipy, sys, pickle
 import numpy as np
@@ -19,7 +20,8 @@ import correlation_constrained_regression as ccr
 import analysis_tools as at
 
 dataset = 'pac2019'
-X, y = at.load_data(dataset)
+X_train, X_test, y_train, y_test, feature_names = at.load_data(dataset)
+n_train, n_test = X_train.shape[0], X_test.shape[0]
 
 tune_KernelRidge = [
   {'kernel': ['rbf'], 'gamma': [100, 10, 1, 1e-1], 'alpha': [1e-3, 1e-2, 1e-1, 1, 10]}
@@ -30,7 +32,7 @@ tune_KernelRidge = [
 tune_Ridge = {'alpha': [1e-3, 1e-2, 1e-1, 1, 10]}
 
 import time
-n_iterations = 100
+n_bootstrap_iterations = 100
 n_constraints = 7
 
 # iterations x constraints (unconstrained,zero,bounded 0.1, 0.2, 0.3) x models (linear,ridge,kernelridge) x train/inference phase
@@ -75,12 +77,13 @@ def fit_model_and_correct(model, X_train, y_train, X_test, y_test, approach):
     corr_test = np.corrcoef(y_test, -delta_test)[0,1]
     return mae_train, mae_test, corr_train, corr_test
 
-print(f'Starting regression loop with {n_iterations} iterations')
-for n in range(n_iterations):
+print(f'Starting regression loop with {n_iterations} bootstrap iterations')
+for n in range(n_bootstrap_iterations):
     if n % 2 == 0: print('iteration', n)
 
-    # get train and test data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=n)
+    # bootstrap training data
+    boot_ix = np.random.choice(np.arange(n_train), size=n_train, replace=True)
+    X_boot, y_boot = X_train[boot_ix, :], y_train[boot_ix]
 
     for m in range(n_constraints): # constraints
 
@@ -114,15 +117,15 @@ for n in range(n_iterations):
             ridge = GridSearchCV(Ridge(), param_grid=tune_Ridge, scoring='neg_mean_squared_error')
             kr = GridSearchCV(KernelRidge(), param_grid=tune_KernelRidge, scoring='neg_mean_squared_error')
             approach = m - 4
-            mae[n, m, 0, 0], mae[n, m, 0, 1], corrs[n, m, 0, 0], corrs[n, m, 0, 1] = fit_model_and_correct(linreg, X_train, y_train, X_test, y_test, approach)
-            mae[n, m, 1, 0], mae[n, m, 2, 1], corrs[n, m, 1, 0], corrs[n, m, 1, 1] = fit_model_and_correct(ridge, X_train, y_train, X_test, y_test, approach)
-            mae[n, m, 2, 0], mae[n, m, 1, 1], corrs[n, m, 2, 0], corrs[n, m, 2, 1] = fit_model_and_correct(kr, X_train, y_train, X_test, y_test, approach)
+            mae[n, m, 0, 0], mae[n, m, 0, 1], corrs[n, m, 0, 0], corrs[n, m, 0, 1] = fit_model_and_correct(linreg, X_boot, y_boot, X_test, y_test, approach)
+            mae[n, m, 1, 0], mae[n, m, 2, 1], corrs[n, m, 1, 0], corrs[n, m, 1, 1] = fit_model_and_correct(ridge, X_boot, y_boot, X_test, y_test, approach)
+            mae[n, m, 2, 0], mae[n, m, 1, 1], corrs[n, m, 2, 0], corrs[n, m, 2, 1] = fit_model_and_correct(kr, X_boot, y_boot, X_test, y_test, approach)
             continue
 
         # Fit models
-        mae[n, m, 0, 0], mae[n, m, 0, 1], times[n, m, 0, 0], times[n, m, 0, 1], corrs[n, m, 0, 0], corrs[n, m, 0, 1] = at.fit_model(linreg, X_train, y_train, X_test, y_test)
-        mae[n, m, 1, 0], mae[n, m, 1, 1], times[n, m, 1, 0], times[n, m, 1, 1], corrs[n, m, 1, 0], corrs[n, m, 1, 1] = at.fit_model(ridge, X_train, y_train, X_test, y_test)
-        mae[n, m, 2, 0], mae[n, m, 2, 1], times[n, m, 2, 0], times[n, m, 2, 1], corrs[n, m, 2, 0], corrs[n, m, 2, 1] = at.fit_model(kr, X_train, y_train, X_test, y_test)
+        mae[n, m, 0, 0], mae[n, m, 0, 1], times[n, m, 0, 0], times[n, m, 0, 1], corrs[n, m, 0, 0], corrs[n, m, 0, 1] = at.fit_model(linreg, X_boot, y_boot, X_test, y_test)
+        mae[n, m, 1, 0], mae[n, m, 1, 1], times[n, m, 1, 0], times[n, m, 1, 1], corrs[n, m, 1, 0], corrs[n, m, 1, 1] = at.fit_model(ridge, X_boot, y_boot, X_test, y_test)
+        mae[n, m, 2, 0], mae[n, m, 2, 1], times[n, m, 2, 0], times[n, m, 2, 1], corrs[n, m, 2, 0], corrs[n, m, 2, 1] = at.fit_model(kr, X_boot, y_boot, X_test, y_test)
 
 # save results
-pickle.dump( (times, mae, corrs), open(f'regression_results_{dataset}.pickle', 'wb' ) )
+pickle.dump( (times, mae, corrs), open(f'regression_results_{dataset}_train_test.pickle', 'wb' ) )

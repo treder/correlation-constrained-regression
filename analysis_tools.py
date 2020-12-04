@@ -19,6 +19,11 @@ def load_data(dataset):
     '''
     print('Loading data')
     if dataset == 'pac2019':
+        with open('pac2019_ICA_20201202_train_and_test.pickle', 'rb') as f:
+            X_train, X_test, y_train, y_test, feature_names = f.load()
+        print('Train:', X_train.shape, 'Test:', X_test.shape)
+        return X_train, X_test, y_train, y_test, feature_names
+    elif dataset == 'pac2019old':
         df = pd.read_csv('PAC2019_BrainAge_ICA_reduced.csv')
 
         # extract features and age
@@ -26,8 +31,8 @@ def load_data(dataset):
         X = df.iloc[:, feature_ix].to_numpy()
         y = df['age'].to_numpy()
 
-    print(X.shape, y.shape)
-    return X, y
+        print(X.shape, y.shape)
+        return X, y
 
 def fit_model(model, X_train, y_train, X_test, y_test):
     '''
