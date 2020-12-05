@@ -1,5 +1,5 @@
 '''
-OLD VERSION DO NOT USE
+OLD VERSION: DOES NOT USE TEST SET (USES CROSS-VALIDATION ON TRAINING SET INSTEAD)
 Performs cross-validation on the training set
 '''
 import scipy, sys, pickle

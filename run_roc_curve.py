@@ -1,4 +1,5 @@
 '''
+OLD VERSION: DOES NOT USE TEST SET (USES CROSS-VALIDATION ON TRAINING SET INSTEAD)
 Performs regression for a range of rho values from 0 to 1.
 Used to depict the ROC curve of rho vs MAE/ADC.
 '''
