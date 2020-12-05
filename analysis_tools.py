@@ -1,4 +1,4 @@
-import scipy, sys, time
+import scipy, sys, time, pickle
 import numpy as np
 import pandas as pd
 import sklearn, sklearn.datasets
@@ -20,7 +20,7 @@ def load_data(dataset):
     print('Loading data')
     if dataset == 'pac2019':
         with open('pac2019_ICA_20201202_train_and_test.pickle', 'rb') as f:
-            X_train, X_test, y_train, y_test, feature_names = f.load()
+            X_train, X_test, y_train, y_test, feature_names = pickle.load(f)
         print('Train:', X_train.shape, 'Test:', X_test.shape)
         return X_train, X_test, y_train, y_test, feature_names
     elif dataset == 'pac2019old':
