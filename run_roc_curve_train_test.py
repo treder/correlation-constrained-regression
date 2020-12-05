@@ -1,7 +1,8 @@
 '''
-OLD VERSION: DOES NOT USE TEST SET (USES CROSS-VALIDATION ON TRAINING SET INSTEAD)
-Performs regression for a range of rho values from 0 to 1.
+Performs regression for a range of rho values from 0 to 1
+using the PAC2019 train and test sets.
 Used to depict the ROC curve of rho vs MAE/ADC.
+Bootstrapping is used to estimate SD of the estimates.
 '''
 import scipy, sys, time, pickle
 import numpy as np
@@ -17,25 +18,27 @@ import correlation_constrained_regression as ccr
 import analysis_tools as at
 
 dataset = 'pac2019'
-X, y = at.load_data(dataset)
+X_train, X_test, y_train, y_test, feature_names = at.load_data(dataset)
+n_train, n_test = X_train.shape[0], X_test.shape[0]
 
 tune_KernelRidge = {'kernel': ['rbf'], 'gamma': [100, 10, 1, 1e-1], 'alpha': [1e-3, 1e-2, 1e-1, 1, 10]}
 tune_Ridge = {'alpha': [1e-3, 1e-2, 1e-1, 1, 10]}
 
 import time
-n_iterations = 100
+n_bootstrap_iterations = 100
 rho = np.linspace(0, 1, 51)
 
 # iterations x correlation constraints x models (linear,ridge,kernelridge) x train/test phase
-mse = np.zeros((n_iterations, len(rho), 3, 2))
-corrs = np.zeros((n_iterations, len(rho), 3, 2))
+mae = np.zeros((n_bootstrap_iterations, len(rho), 3, 2))
+corrs = np.zeros((n_bootstrap_iterations, len(rho), 3, 2))
 
-print(f'Starting regression loop with {n_iterations} iterations')
-for n in range(n_iterations):
+print(f'Starting regression loop with {n_bootstrap_iterations} iterations')
+for n in range(n_bootstrap_iterations):
     if n % 2 == 0: print('iteration', n)
 
-    # get train and test data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=n)
+    # bootstrap training data
+    boot_ix = np.random.choice(np.arange(n_train), size=n_train, replace=True)
+    X_boot, y_boot = X_train[boot_ix, :], y_train[boot_ix]
 
     for m, bound in enumerate(rho): # constraints
 
@@ -44,9 +47,9 @@ for n in range(n_iterations):
         kr = GridSearchCV(ccr.KernelRidge(correlation_bound=bound), param_grid=tune_KernelRidge, scoring='neg_mean_squared_error')
 
         # Fit models
-        mse[n, m, 0, 0], mse[n, m, 0, 1], _, _, corrs[n, m, 0, 0], corrs[n, m, 0, 1] = at.fit_model(linreg, X_train, y_train, X_test, y_test)
-        mse[n, m, 1, 0], mse[n, m, 1, 1], _, _, corrs[n, m, 1, 0], corrs[n, m, 1, 1] = at.fit_model(ridge, X_train, y_train, X_test, y_test)
-        mse[n, m, 2, 0], mse[n, m, 2, 1], _, _, corrs[n, m, 2, 0], corrs[n, m, 2, 1] = at.fit_model(kr, X_train, y_train, X_test, y_test)
+        mae[n, m, 0, 0], mae[n, m, 0, 1], _, _, corrs[n, m, 0, 0], corrs[n, m, 0, 1] = at.fit_model(linreg, X_boot, y_boot, X_test, y_test)
+        mae[n, m, 1, 0], mae[n, m, 1, 1], _, _, corrs[n, m, 1, 0], corrs[n, m, 1, 1] = at.fit_model(ridge, X_boot, y_boot, X_test, y_test)
+        mae[n, m, 2, 0], mae[n, m, 2, 1], _, _, corrs[n, m, 2, 0], corrs[n, m, 2, 1] = at.fit_model(kr, X_boot, y_boot, X_test, y_test)
 
 # save results
-pickle.dump( (mse, corrs, rho, n_iterations), open(f'roc_curve_{dataset}.pickle', 'wb' ) )
+pickle.dump( (mae, corrs, rho), open(f'roc_curve_{dataset}_train_test.pickle', 'wb' ) )
