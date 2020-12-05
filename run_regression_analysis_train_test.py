@@ -36,9 +36,9 @@ n_bootstrap_iterations = 100
 n_constraints = 7
 
 # iterations x constraints (unconstrained,zero,bounded 0.1, 0.2, 0.3) x models (linear,ridge,kernelridge) x train/inference phase
-times = np.zeros((n_iterations, n_constraints, 3, 2))
-mae = np.zeros((n_iterations, n_constraints, 3, 2))
-corrs = np.zeros((n_iterations, n_constraints, 3, 2))
+times = np.zeros((n_bootstrap_iterations, n_constraints, 3, 2))
+mae = np.zeros((n_bootstrap_iterations, n_constraints, 3, 2))
+corrs = np.zeros((n_bootstrap_iterations, n_constraints, 3, 2))
 
 def fit_model_and_correct(model, X_train, y_train, X_test, y_test, approach):
     '''
@@ -77,7 +77,7 @@ def fit_model_and_correct(model, X_train, y_train, X_test, y_test, approach):
     corr_test = np.corrcoef(y_test, -delta_test)[0,1]
     return mae_train, mae_test, corr_train, corr_test
 
-print(f'Starting regression loop with {n_iterations} bootstrap iterations')
+print(f'Starting regression loop with {n_bootstrap_iterations} bootstrap iterations')
 for n in range(n_bootstrap_iterations):
     if n % 2 == 0: print('iteration', n)
 
