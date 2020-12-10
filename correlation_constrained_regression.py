@@ -23,12 +23,13 @@ import numpy as np
 #     '''
 #     self.dual_coef_ = self.orig_dual_coef_ * theta
 
-def calculate_scaling_factor(y, yhat, y_residual_correlation_uncorrected_, correlation_bound):
+def calculate_scaling_factor(y, yhat, correlation_bound):
     '''
     Calculates the scaling factor ``theta`` that will make the model meet the correlation constraint
     '''
     yc = y - y.mean()
     yhatc = yhat - yhat.mean()
+    y_residual_correlation_uncorrected_ = yc.dot(yc - yhatc) / (np.linalg.norm(yc)*np.linalg.norm(yc - yhatc))
 
     if y_residual_correlation_uncorrected_ < correlation_bound:
         # dont fix it if it aint broken
@@ -36,9 +37,9 @@ def calculate_scaling_factor(y, yhat, y_residual_correlation_uncorrected_, corre
     elif correlation_bound == 0:
         # zero correlation constraint
         # determine scaling factor that sets corr(y, y - yhat) = 0
-        theta = yc.dot(yc) / yc.dot(yhatc) 
+        theta = yc.dot(yc) / yc.dot(yhatc)
     else:
-        # bounded correlation constraint 
+        # bounded correlation constraint
         # determine scaling factor that sets corr(y, y - yhat) to rho or -rho
         y2 = yc.dot(yc)
         yhat2 = yhatc.dot(yhatc)
@@ -56,29 +57,31 @@ def calculate_scaling_factor(y, yhat, y_residual_correlation_uncorrected_, corre
     return theta
 
 def calculate_residual_correlation(self, X, y):
-    '''Given features ``X`` and targets ``y``, calculates 
-    the correlation between ``y`` and the prediction residuals 
+    '''Given features ``X`` and targets ``y``, calculates
+    the correlation between ``y`` and the prediction residuals
     ``y - yhat``
     '''
-    yhat = self.predict(X)
-    return np.corrcoef(y, y - yhat)[0,1]
+    yc = y - y.mean()
+    yhatc = self.predict(X)
+    yhatc -= yhatc.mean()
+    return yc.dot(yc - yhatc) / (np.linalg.norm(yc)*np.linalg.norm(yc - yhatc))
 
 class LinearRegression(sklearn.linear_model.LinearRegression):
     """Ordinary least squares Linear Regression with correlation constraints.
 
-    This class inherits from Scikit-Learn's LinearRegression. It extends 
-    the model with an additional parameter ``correlation_bound``. Only the 
+    This class inherits from Scikit-Learn's LinearRegression. It extends
+    the model with an additional parameter ``correlation_bound``. Only the
     additional parameters and attributes are described here.
-    
+
     Parameters
     ----------
     correlation_bound : float, default=None
-        If set to a value ``r`` with ``0 <= r <= 1`` defines a bound for the correlation 
+        If set to a value ``r`` with ``0 <= r <= 1`` defines a bound for the correlation
         between the residuals and y, that is, ``corr(y, y-yhat) <= r``
-        
+
     Attributes
     ----------
-    coef_ : ndarray of shape (n_features,) 
+    coef_ : ndarray of shape (n_features,)
         Regression weight(s)
     orig_coef_ : ndarray of shape (n_features,)
         Original coefficients of the unconstrained model if correlation constraint are applied
@@ -87,15 +90,15 @@ class LinearRegression(sklearn.linear_model.LinearRegression):
     #y_residual_correlation_corrected_ : float
     #    correlation between ``y`` and the residuals ``y - yhat`` after correction
     a_ : float
-        Scaling factor such that ``a_ * coef_`` yields a model that satisfies the 
+        Scaling factor such that ``a_ * coef_`` yields a model that satisfies the
         correlation constraint
 
 
     See Also
     --------
-    Ridge : Correlation constrained ridge regression 
-    KernelRidge : Correlation constrained kernel ridge regression 
-    
+    Ridge : Correlation constrained ridge regression
+    KernelRidge : Correlation constrained kernel ridge regression
+
     Examples
     --------
     >>> import numpy as np
@@ -127,9 +130,9 @@ class LinearRegression(sklearn.linear_model.LinearRegression):
         self.theta_ = None
         self.orig_coef_ = self.coef_
 
-        if self.correlation_bound is not None:            
-                self.theta_ = calculate_scaling_factor(y, yhat, np.corrcoef(y, y - yhat)[0,1], self.correlation_bound)
-                self.coef_ *= self.theta_             # scale regression coefficients                    
+        if self.correlation_bound is not None:
+                self.theta_ = calculate_scaling_factor(y, yhat, self.correlation_bound)
+                self.coef_ *= self.theta_             # scale regression coefficients
                 if self.fit_intercept:
                     mx = X.mean(axis=0)
                     self.intercept_ = y.mean() - mx.dot(self.coef_) # fix intercept
@@ -138,19 +141,19 @@ class LinearRegression(sklearn.linear_model.LinearRegression):
 class Ridge(sklearn.linear_model.Ridge):
     """Linear least squares with l2 regularization and correlation constraints.
 
-    This class inherits from Scikit-Learn's Ridge. It extends 
-    the model with an additional parameter ``correlation_bound``. Only the 
+    This class inherits from Scikit-Learn's Ridge. It extends
+    the model with an additional parameter ``correlation_bound``. Only the
     additional parameters and attributes are described here.
 
     Parameters
     ----------
     correlation_bound : float, default=None
-        If set to a value ``r`` with ``0 <= r <= 1`` defines a bound for the correlation 
+        If set to a value ``r`` with ``0 <= r <= 1`` defines a bound for the correlation
         between the residuals and y, that is, ``corr(y, y-yhat) <= r``
-        
+
     Attributes
     ----------
-    coef_ : ndarray of shape (n_features,) 
+    coef_ : ndarray of shape (n_features,)
         Regression weight(s)
     orig_coef_ : ndarray of shape (n_features,)
         Original coefficients of the unconstrained model if correlation constraint are applied
@@ -159,13 +162,13 @@ class Ridge(sklearn.linear_model.Ridge):
     #y_residual_correlation_corrected_ : float
     #    correlation between ``y`` and the residuals ``y - yhat`` after correction
     theta_ : float
-        Scaling factor such that ``theta_ * coef_`` yields a model that satisfies the 
+        Scaling factor such that ``theta_ * coef_`` yields a model that satisfies the
         correlation constraint
 
     See Also
     --------
-    LinearRegression : Correlation constrained OLS regression 
-    KernelRidge : Correlation constrained kernel ridge regression 
+    LinearRegression : Correlation constrained OLS regression
+    KernelRidge : Correlation constrained kernel ridge regression
 
     Examples
     --------
@@ -177,7 +180,7 @@ class Ridge(sklearn.linear_model.Ridge):
     >>> X = rng.randn(n_samples, n_features)
     >>> model = ccr.Ridge(alpha=1.0, correlation_bound=0.1)
     >>> model.fit(X, y)
-    >>> print(f'corr(y, e): uncorrected {model.y_residual_correlation_uncorrected_:.3f}, corrected {model.y_residual_correlation_corrected_:.3f}')  
+    >>> print(f'corr(y, e): uncorrected {model.y_residual_correlation_uncorrected_:.3f}, corrected {model.y_residual_correlation_corrected_:.3f}')
     """
     calculate_residual_correlation = calculate_residual_correlation
 
@@ -199,9 +202,9 @@ class Ridge(sklearn.linear_model.Ridge):
         self.theta_ = None
         self.orig_coef_ = self.coef_
 
-        if self.correlation_bound is not None:            
-                self.theta_ = calculate_scaling_factor(y, yhat, np.corrcoef(y, y - yhat)[0,1], self.correlation_bound)
-                self.coef_ *= self.theta_             # scale regression coefficients                    
+        if self.correlation_bound is not None:
+                self.theta_ = calculate_scaling_factor(y, yhat, self.correlation_bound)
+                self.coef_ *= self.theta_             # scale regression coefficients
                 if self.fit_intercept:
                     mx = X.mean(axis=0)
                     self.intercept_ = y.mean() - mx.dot(self.coef_) # fix intercept
@@ -210,16 +213,16 @@ class Ridge(sklearn.linear_model.Ridge):
 class KernelRidge(sklearn.kernel_ridge.KernelRidge):
     """Kernel Ridge Regression.
 
-    This class inherits from Scikit-Learn's KernelRidge. It extends 
-    the model with an additional parameter ``correlation_bound``. Only the 
+    This class inherits from Scikit-Learn's KernelRidge. It extends
+    the model with an additional parameter ``correlation_bound``. Only the
     additional parameters and attributes are described here.
 
     Parameters
     ----------
     correlation_bound : float, default=None
-        If set to a value ``r`` with ``0 <= r <= 1`` defines a bound for the correlation 
+        If set to a value ``r`` with ``0 <= r <= 1`` defines a bound for the correlation
         between the residuals and y, that is, ``corr(y, y-yhat) <= r``
-        
+
     Attributes
     ----------
     dual_coef_ : ndarray of shape (n_samples,) or (n_samples, n_targets)
@@ -231,13 +234,13 @@ class KernelRidge(sklearn.kernel_ridge.KernelRidge):
     #y_residual_correlation_corrected_ : float
     #    correlation between ``y`` and the residuals ``y - yhat`` after correction
     theta_ : float
-        Scaling factor such that ``theta_ * coef_`` yields a model that satisfies the 
+        Scaling factor such that ``theta_ * coef_`` yields a model that satisfies the
         correlation constraint
 
     See Also
     --------
-    LinearRegression : Correlation constrained OLS regression 
-    Ridge : Correlation constrained ridge regression 
+    LinearRegression : Correlation constrained OLS regression
+    Ridge : Correlation constrained ridge regression
 
     Examples
     --------
@@ -249,7 +252,7 @@ class KernelRidge(sklearn.kernel_ridge.KernelRidge):
     >>> X = rng.randn(n_samples, n_features)
     >>> model = ccr.KernelRidge(alpha=0.5, kernel='rbf', gamma=1, correlation_bound=0.01)
     >>> model.fit(X, y)
-    >>> print(f'corr(y, e): uncorrected {model.y_residual_correlation_uncorrected_:.3f}, corrected {model.y_residual_correlation_corrected_:.3f}')  
+    >>> print(f'corr(y, e): uncorrected {model.y_residual_correlation_uncorrected_:.3f}, corrected {model.y_residual_correlation_corrected_:.3f}')
     """
     calculate_residual_correlation = calculate_residual_correlation
 
@@ -270,15 +273,15 @@ class KernelRidge(sklearn.kernel_ridge.KernelRidge):
         self.theta_ = None
         self.orig_dual_coef_ = self.dual_coef_
 
-        if self.correlation_bound is not None:            
-                self.theta_ = calculate_scaling_factor(y, yhat, np.corrcoef(y, y - yhat)[0,1], self.correlation_bound)
-                self.dual_coef_ *= self.theta_             # scale dualg regression coefficients                    
+        if self.correlation_bound is not None:
+                self.theta_ = calculate_scaling_factor(y, yhat, self.correlation_bound)
+                self.dual_coef_ *= self.theta_             # scale dualg regression coefficients
 
         return self
 
 # print(sklearn.__version__)
 
-# debug 
+# debug
 # model = LinearRegression(correlation_bound=None, fit_intercept=True)
 # model = LinearRegression(correlation_bound=.001, fit_intercept=True)
 # model = LinearRegression(correlation_bound=0, fit_intercept=True)

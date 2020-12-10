@@ -77,7 +77,6 @@ def fit_model_and_correct(model, X_train, y_train, X_test, y_test, approach):
         delta_test = yhat_test - y_test
     test_time = time.time() - start_time
 
-
     # MAE
     mae_train = (np.abs(delta_train)).mean()
     mae_test = (np.abs(delta_test)).mean()
