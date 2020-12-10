@@ -45,7 +45,6 @@ def fit_model(model, X_train, y_train, X_test, y_test):
 
     # predict
     start_time = time.time()
-    yhat_train = model.predict(X_train)
     yhat_test  = model.predict(X_test)
     test_time = time.time() - start_time
 
